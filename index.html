@@ -139,7 +139,7 @@ archivo PMTiles.
 
         /* Controles de vuelo a un departamento y restaurar vista. */
         #controles-mapa {
-            position: absolute; top: 155px; left: 16px; z-index: 10;
+            position: absolute; top: calc(var(--alto-info, 190px) + 20px); left: 16px; z-index: 10;
             display: flex; flex-direction: column; gap: 6px; font-family: inherit;
         }
 
@@ -350,19 +350,6 @@ archivo PMTiles.
             #info .gis-movil p { display: block; margin: 0; font-size: 12px; }
             .gis-portada { margin-top: 18px; padding: 10px 14px; }
         }
-        #herramientas { position:absolute; right:12px; top:120px; z-index:12; display:flex; flex-direction:column; gap:7px; }
-        #herramientas button { background:#1b4332; color:white; border:1px solid #e8813a; padding:9px 12px; border-radius:8px; cursor:pointer; font-weight:700; box-shadow:0 3px 12px #0003; }
-        #herramientas button[aria-pressed="true"] { background:#c96327; }
-        #estadisticas { position:absolute; right:12px; top:225px; width:min(310px,calc(100vw - 24px)); max-height:calc(100dvh - 245px); overflow:auto; z-index:12; background:#fff; color:#24332b; padding:16px; border-radius:10px; box-shadow:0 5px 20px #0004; font-size:13px; }
-        #estadisticas[hidden] { display:none; }
-        #estadisticas h3 { margin:0 0 8px; font-size:16px; }
-        #estadisticas p { margin:5px 0; line-height:1.4; }
-        body.intro #herramientas, body.intro #estadisticas { display:none; }
-        @media (max-width:700px), (max-height:520px) {
-          #herramientas { right:10px; top:auto; bottom:104px; flex-direction:row; }
-          #herramientas button { padding:9px; font-size:12px; }
-          #estadisticas { top:auto; bottom:155px; max-height:40dvh; }
-        }
     </style>
 </head>
 <body class="intro">
@@ -416,8 +403,6 @@ archivo PMTiles.
 <!-- Aqui termina la conf para vuelo depto -->
 
 <div id="legend"></div>
-<div id="herramientas"><button id="btn-3d" type="button" aria-pressed="false">Vista 3D</button><button id="btn-estadisticas" type="button" aria-expanded="false">Estadísticas</button></div>
-<section id="estadisticas" hidden aria-live="polite"><h3>Estadísticas departamentales</h3><p>Seleccioná un departamento.</p></section>
 
 <!-- Portada con el boton ENTRAR: el texto y los tiempos se definen en CONFIG. -->
 <div id="portada">
@@ -730,22 +715,14 @@ document.getElementById('btn-restaurar').addEventListener('click', () => {
 });
     // Aqui termina la conf para vuelo depto
 
-    // Complementos opcionales: departamentos.geojson y estadisticas_departamentos.json.
-    let departamentosDisponibles=false, departamentoActual=null, estadisticasDepartamentos=null;
+    // Contorno opcional: departamentos.geojson.
+    let departamentosDisponibles=false, departamentoActual=null;
     const normalizar = t => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
     function seleccionarDepartamento(nombre) {
         departamentoActual=nombre;
         if (departamentosDisponibles && map.getLayer('departamento-contorno'))
             map.setFilter('departamento-contorno',['==',['get','_nombre_normalizado'],normalizar(nombre)]);
-        actualizarEstadisticas();
-    }
-    function actualizarEstadisticas() {
-        const panel=document.getElementById('estadisticas');
-        if (!departamentoActual) {panel.innerHTML='<h3>Estadísticas departamentales</h3><p>Seleccioná un departamento.</p>';return;}
-        const d=estadisticasDepartamentos?.[normalizar(departamentoActual)];
-        if (!d) {panel.innerHTML='<h3>'+departamentoActual+'</h3><p>Para ver estadísticas reales, publicá <strong>estadisticas_departamentos.json</strong> calculado con la capa original.</p>';return;}
-        const fmt=x=>Number(x).toLocaleString('es-UY',{maximumFractionDigits:2});
-        panel.innerHTML='<h3>'+departamentoActual+'</h3><p><strong>Focos:</strong> '+fmt(d.focos)+'</p><p><strong>Seccionales:</strong> '+fmt(d.seccionales)+'</p><p><strong>Superficie:</strong> '+fmt(d.area_km2)+' km²</p><p><strong>Densidad:</strong> '+fmt(d.focos/d.area_km2)+' focos/km²</p>'+(d.seccional_maxima?'<p><strong>Seccional con más focos:</strong> '+d.seccional_maxima+'</p>':'');
+
     }
     async function cargarComplementos() {
         try {
@@ -756,25 +733,7 @@ document.getElementById('btn-restaurar').addEventListener('click', () => {
             map.addLayer({id:'departamento-contorno',type:'line',source:'departamentos-limites',paint:{'line-color':'#080808','line-width':3.5,'line-opacity':0.95},filter:['==',['get','_nombre_normalizado'],'']});
             departamentosDisponibles=true;seleccionarDepartamento(departamentoActual);
         }catch(e){console.info('Contorno pendiente: departamentos.geojson',e);}
-        try {
-            const r=await fetch('estadisticas_departamentos.json');if(!r.ok)throw Error('No disponible');
-            const data=await r.json();estadisticasDepartamentos=Object.fromEntries(Object.entries(data).map(([k,v])=>[normalizar(k),v]));actualizarEstadisticas();
-        }catch(e){console.info('Estadísticas pendientes: estadisticas_departamentos.json',e);}
     }
-    document.getElementById('btn-estadisticas').addEventListener('click',()=>{
-        const p=document.getElementById('estadisticas');p.hidden=!p.hidden;
-        document.getElementById('btn-estadisticas').setAttribute('aria-expanded',String(!p.hidden));
-    });
-    let modo3D=false;
-    document.getElementById('btn-3d').addEventListener('click',()=>{
-        if(!map.getLayer('density-extrusion'))return;
-        modo3D=!modo3D;
-        map.setLayoutProperty('density-extrusion','visibility',modo3D?'visible':'none');
-        map.setPaintProperty('density-fill','fill-opacity',modo3D?0:CONFIG.fillOpacity);
-        map.easeTo({pitch:modo3D?52:0,bearing:modo3D?-10:0,duration:1100,essential:true});
-        const b=document.getElementById('btn-3d');b.textContent=modo3D?'Vista 2D':'Vista 3D';b.setAttribute('aria-pressed',String(modo3D));
-    });
-
     // ================== CARGA, PRECALENTAMIENTO Y PORTADA ==================
     function progreso(pct) {
         document.getElementById('portada-barra-relleno').style.width = pct + '%';
@@ -848,15 +807,6 @@ document.getElementById('btn-restaurar').addEventListener('click', () => {
             }
         });
 
-        map.addLayer({
-            id: 'density-extrusion', type: 'fill-extrusion', source: 'density',
-            'source-layer': CONFIG.sourceLayer, layout: {visibility:'none'},
-            paint: {
-                'fill-extrusion-color': ['step',['get',CONFIG.valueProperty],CONFIG.colorSteps[0][1],...CONFIG.colorSteps.slice(1).flat()],
-                'fill-extrusion-height': ['*',300,['max',0,['to-number',['get',CONFIG.valueProperty],0]]],
-                'fill-extrusion-base':0,'fill-extrusion-opacity':0.88
-            }
-        });
 
         map.addLayer({
             id: 'density-outline',
