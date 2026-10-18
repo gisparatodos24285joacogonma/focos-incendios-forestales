@@ -333,6 +333,23 @@ archivo PMTiles.
             .legend-row { flex-direction: column; align-items: stretch; margin: 0; text-align: center; font-size: 11px; }
             .legend-color { width: 100%; margin: 0 0 3px; }
         }
+
+        /* Invitación a GIS Moderno: verde y naranja de este proyecto. */
+        .gis-invitacion { font-size: 12px; line-height: 1.5; color: #f7f2e8; }
+        .gis-invitacion a { color: #ffd5a8; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; }
+        .gis-invitacion a:hover, .gis-invitacion a:focus-visible { color: #fff; }
+        .gis-portada { margin-top: 22px; max-width: 460px; padding: 12px 18px; background: rgba(27,67,50,.24); border: 1px solid rgba(255,255,255,.24); border-radius: 10px; }
+        .gis-portada a { color: #fff0cb; }
+        #gis-mapa { position: absolute; z-index: 10; top: 240px; left: 16px; width: 290px; padding: 12px 14px; border-left: 4px solid #e8813a; border-radius: 9px; background: linear-gradient(145deg,#1b4332,#2d6a4f); box-shadow: 0 4px 14px rgba(0,0,0,.23); }
+        #info .gis-movil { display: none; }
+        body.intro #gis-mapa { opacity: 0; visibility: hidden; }
+        @media (max-width: 700px), (max-height: 520px) {
+            #gis-mapa { display: none; }
+            #info .gis-movil { display: none; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.28); }
+            #info.abierto .gis-movil { display: block; }
+            #info .gis-movil p { display: block; margin: 0; font-size: 12px; }
+            .gis-portada { margin-top: 18px; padding: 10px 14px; }
+        }
     </style>
 </head>
 <body class="intro">
@@ -345,6 +362,9 @@ archivo PMTiles.
 
 <!-- Estos paneles se completan desde JavaScript usando los valores de CONFIG. -->
 <div id="info"></div>
+
+<!-- Invitación compacta en escritorio, sin tapar la leyenda. -->
+<div id="gis-mapa" class="gis-invitacion">¿Te gustaría crear proyectos como este? Conocé GIS Moderno en <a href="https://joacogonzalezma.com/" target="_blank" rel="noopener noreferrer">joacogonzalezma.com</a>. Suscribirte es gratis.</div>
 
 <!-- Aqui comienza la conf para vuelo depto -->
 <div id="controles-mapa">
@@ -399,6 +419,7 @@ archivo PMTiles.
             <div class="portada-barra"><div id="portada-barra-relleno" class="portada-barra-relleno"></div></div>
             <button id="btn-entrar" class="btn-entrar" type="button" disabled></button>
         </div>
+        <div class="gis-invitacion gis-portada">¿Te gustaría crear proyectos como este? Conocé GIS Moderno en <a href="https://joacogonzalezma.com/" target="_blank" rel="noopener noreferrer">joacogonzalezma.com</a>. Suscribirte es gratis.</div>
     </div>
 </div>
 
@@ -513,12 +534,14 @@ archivo PMTiles.
         <div class="quote-mark">&rdquo;</div>
         <h3>${CONFIG.title}</h3>
         <p>${CONFIG.description}</p>
+        <div class="gis-invitacion gis-movil"><p>¿Te gustaría crear proyectos como este? Conocé GIS Moderno en <a href="https://joacogonzalezma.com/" target="_blank" rel="noopener noreferrer">joacogonzalezma.com</a>. Suscribirte es gratis.</p></div>
         <button type="button" class="info-flecha" aria-label="Mostrar u ocultar la descripción" aria-expanded="false">▼</button>
     `;
 
     // En celulares el panel del titulo se pliega: se toca para ver u ocultar la descripcion.
     // En pantallas grandes este cambio no tiene efecto visual (ver el CSS de celular).
     const infoEl = document.getElementById('info');
+    infoEl.querySelector('.gis-movil a').addEventListener('click', (e) => e.stopPropagation());
     infoEl.addEventListener('click', () => {
         const abierto = infoEl.classList.toggle('abierto');
         infoEl.querySelector('.info-flecha').setAttribute('aria-expanded', String(abierto));
